@@ -6,7 +6,7 @@ const msalConfig = {
     auth: {
         clientId: "5bfed9f4-bbb5-4b7f-99f9-ba598fac4111",
         authority: "https://login.microsoftonline.com/common",
-        redirectUri: "http://localhost:8080"
+        redirectUri: "https://cstarr2.github.io/email-task-manager"
     },
     cache: {
         cacheLocation: "localStorage",
