@@ -1859,6 +1859,29 @@ body {
     border-radius: 2px;
 }
 
+/* Local Mode Badge */
+.local-mode-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(52, 199, 89, 0.1), rgba(48, 209, 88, 0.05));
+    border: 1px solid rgba(52, 199, 89, 0.3);
+    border-radius: var(--border-radius-sm);
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.local-mode-badge i {
+    font-size: 14px;
+}
+
+.setting-group label i {
+    margin-right: 6px;
+    color: var(--primary);
+}
+
 /* Project Schedule Card Addition */
 .project-schedule {
     display: flex;

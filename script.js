@@ -2,6 +2,7 @@
 
 // Global State
 let isDemoMode = false;
+let isLocalMode = false;
 let tasks = [];
 let emails = [];
 let completedTasks = [];
@@ -19,11 +20,103 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeApp() {
+    detectLocalMode();
     loadStoredData();
     updateGreeting();
     setTodayDate();
     setupEventListeners();
     checkDailyNotification();
+}
+
+// Detect if running from local Python server
+function detectLocalMode() {
+    isLocalMode = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    
+    if (isLocalMode) {
+        // Show local mode UI elements
+        const startupSetting = document.getElementById('startup-setting');
+        const localModeInfo = document.getElementById('local-mode-info');
+        
+        if (startupSetting) startupSetting.style.display = 'flex';
+        if (localModeInfo) localModeInfo.style.display = 'block';
+        
+        // Check startup status
+        checkStartupStatus();
+        
+        // Setup startup toggle listener
+        const startupToggle = document.getElementById('windows-startup');
+        if (startupToggle) {
+            startupToggle.addEventListener('change', toggleWindowsStartup);
+        }
+    }
+}
+
+// Check Windows startup status from local API
+async function checkStartupStatus() {
+    if (!isLocalMode) return;
+    
+    try {
+        const response = await fetch('/api/startup-status');
+        const data = await response.json();
+        const toggle = document.getElementById('windows-startup');
+        if (toggle) {
+            toggle.checked = data.enabled;
+        }
+    } catch (error) {
+        console.log('Not running with local launcher - startup control unavailable');
+    }
+}
+
+// Toggle Windows startup via local API
+async function toggleWindowsStartup() {
+    if (!isLocalMode) return;
+    
+    const toggle = document.getElementById('windows-startup');
+    const enable = toggle.checked;
+    
+    try {
+        const endpoint = enable ? '/api/enable-startup' : '/api/disable-startup';
+        const response = await fetch(endpoint, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(enable ? 'App will start with Windows' : 'Removed from Windows startup', 'success');
+        } else {
+            showToast('Failed to update startup setting', 'error');
+            toggle.checked = !enable; // Revert
+        }
+    } catch (error) {
+        console.error('Startup toggle error:', error);
+        showToast('Startup control requires the local launcher', 'warning');
+        toggle.checked = !enable; // Revert
+    }
+}
+
+// Save data to local server if in local mode
+async function saveDataToLocalServer() {
+    if (!isLocalMode) return;
+    
+    try {
+        await fetch('/api/save-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tasks,
+                emails,
+                completedTasks,
+                projects,
+                meetings,
+                settings: {
+                    dailyNotificationEnabled: document.getElementById('daily-notification')?.checked,
+                    notificationTime: document.getElementById('notification-time')?.value,
+                    syncInterval: document.getElementById('sync-interval')?.value,
+                    defaultPriority: document.getElementById('default-priority')?.value
+                }
+            })
+        });
+    } catch (error) {
+        // Fall back to localStorage silently
+    }
 }
 
 function loadStoredData() {
@@ -64,6 +157,9 @@ function saveData() {
     localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
     localStorage.setItem('actionEmails', JSON.stringify(emails));
     localStorage.setItem('taskProjects', JSON.stringify(projects));
+    
+    // Also save to local server if in local mode
+    saveDataToLocalServer();
 }
 
 function saveSettings() {
@@ -74,6 +170,9 @@ function saveSettings() {
         defaultPriority: document.getElementById('default-priority').value
     };
     localStorage.setItem('taskManagerSettings', JSON.stringify(settings));
+    
+    // Also save to local server if in local mode
+    saveDataToLocalServer();
 }
 
 function setupEventListeners() {
