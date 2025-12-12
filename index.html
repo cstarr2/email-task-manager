@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Task Manager | Outlook Action Required</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Daily Hot Tasks Notification Modal -->
+    <div id="hot-tasks-modal" class="modal-overlay hidden">
+        <div class="modal hot-tasks-modal">
+            <div class="modal-header">
+                <div class="hot-tasks-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <h2>🔥 Hot Tasks for Today</h2>
+                <p class="modal-subtitle" id="today-date"></p>
+                <button class="modal-close" onclick="closeHotTasksModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="hot-tasks-list" class="hot-tasks-list">
+                    <!-- Hot tasks will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeHotTasksModal()">Dismiss</button>
+                <button class="btn btn-primary" onclick="closeHotTasksModal(); showSection('tasks')">View All Tasks</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">
+                <div class="email-icon">
+                    <i class="fas fa-envelope-open-text"></i>
+                </div>
+                <h1>Email Task Manager</h1>
+                <p class="tagline">Outlook Action Required Tracker</p>
+            </div>
+            <div class="login-form">
+                <p class="login-info">Sign in with your Microsoft account to access your Outlook emails</p>
+                <button type="button" class="login-btn microsoft-login" onclick="signInWithMicrosoft()">
+                    <i class="fab fa-microsoft"></i>
+                    Sign in with Microsoft
+                </button>
+                <div class="demo-divider">
+                    <span>or try demo mode</span>
+                </div>
+                <button type="button" class="login-btn demo-login" onclick="loginDemo()">
+                    <i class="fas fa-play-circle"></i>
+                    Try Demo Mode
+                </button>
+            </div>
+            <p class="login-footer">© 2025 Email Task Manager. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="dashboard hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <span>Task Manager</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active" data-section="home" onclick="showSection('home')">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item" data-section="emails" onclick="showSection('emails')">
+                        <i class="fas fa-inbox"></i>
+                        <span>Action Required</span>
+                        <span class="badge" id="email-count">0</span>
+                    </li>
+                    <li class="nav-item" data-section="tasks" onclick="showSection('tasks')">
+                        <i class="fas fa-tasks"></i>
+                        <span>Tasks</span>
+                        <span class="badge" id="task-count">0</span>
+                    </li>
+                    <li class="nav-item" data-section="completed" onclick="showSection('completed')">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Completed</span>
+                    </li>
+                    <li class="nav-item" data-section="calendar" onclick="showSection('calendar')">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Calendar View</span>
+                    </li>
+                    <li class="nav-item" data-section="projects" onclick="showSection('projects')">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Projects</span>
+                        <span class="badge" id="project-count">0</span>
+                    </li>
+                </ul>
+                <div class="nav-divider"></div>
+                <p class="nav-section-title">Quick Filters</p>
+                <ul>
+                    <li class="filter-item" onclick="filterTasks('overdue')">
+                        <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
+                        <span>Overdue</span>
+                        <span class="badge danger" id="overdue-count">0</span>
+                    </li>
+                    <li class="filter-item" onclick="filterTasks('today')">
+                        <i class="fas fa-fire" style="color: var(--warning);"></i>
+                        <span>Due Today</span>
+                        <span class="badge warning" id="today-count">0</span>
+                    </li>
+                    <li class="filter-item" onclick="filterTasks('week')">
+                        <i class="fas fa-calendar-week" style="color: var(--primary);"></i>
+                        <span>This Week</span>
+                        <span class="badge" id="week-count">0</span>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sync-status">
+                    <i class="fas fa-sync-alt" id="sync-icon"></i>
+                    <span id="sync-status-text">Last sync: Never</span>
+                </div>
+                <button class="sync-btn" onclick="syncEmails()">
+                    <i class="fas fa-refresh"></i>
+                    Sync Now
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search tasks..." id="search-input" oninput="searchTasks(this.value)">
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="header-btn notification-btn" onclick="showHotTasksModal()">
+                        <i class="fas fa-fire"></i>
+                        <span class="notification-dot" id="hot-notification-dot"></span>
+                    </button>
+                    <button class="header-btn" onclick="toggleSettings()">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="user-menu">
+                        <div class="user-avatar" onclick="toggleUserMenu()">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="user-dropdown hidden" id="user-dropdown">
+                            <div class="user-info">
+                                <p class="user-name" id="user-name">Demo User</p>
+                                <p class="user-email" id="user-email">demo@example.com</p>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <button onclick="signOut()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Sections -->
+            <div class="page-container">
+                <!-- Home/Dashboard Section -->
+                <section id="section-home" class="page-section active">
+                    <div class="welcome-banner">
+                        <div class="welcome-content">
+                            <h1 id="greeting">Good Morning!</h1>
+                            <p>Here's your task overview for today</p>
+                        </div>
+                        <div class="welcome-stats">
+                            <div class="stat-card urgent">
+                                <i class="fas fa-fire"></i>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="stat-urgent">0</span>
+                                    <span class="stat-label">Hot Tasks</span>
+                                </div>
+                            </div>
+                            <div class="stat-card pending">
+                                <i class="fas fa-clock"></i>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="stat-pending">0</span>
+                                    <span class="stat-label">Pending</span>
+                                </div>
+                            </div>
+                            <div class="stat-card completed">
+                                <i class="fas fa-check-circle"></i>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="stat-completed">0</span>
+                                    <span class="stat-label">Completed Today</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <!-- Today's Priority Tasks -->
+                        <div class="dashboard-card priority-tasks">
+                            <div class="card-header">
+                                <h3><i class="fas fa-fire"></i> Today's Priority Tasks</h3>
+                                <button class="btn-text" onclick="showSection('tasks')">View All</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="priority-tasks-list" class="task-list">
+                                    <!-- Priority tasks will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Emails -->
+                        <div class="dashboard-card recent-emails">
+                            <div class="card-header">
+                                <h3><i class="fas fa-envelope"></i> Recent Action Required Emails</h3>
+                                <button class="btn-text" onclick="showSection('emails')">View All</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="recent-emails-list" class="email-list">
+                                    <!-- Recent emails will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Task Timeline -->
+                        <div class="dashboard-card timeline-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-stream"></i> Upcoming Deadlines</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="timeline-list" class="timeline">
+                                    <!-- Timeline will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Chart -->
+                        <div class="dashboard-card stats-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-pie"></i> Task Distribution</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="stats-chart">
+                                    <div class="chart-placeholder" id="task-chart">
+                                        <div class="donut-chart">
+                                            <div class="donut-segment overdue" style="--percentage: 0; --offset: 0;"></div>
+                                            <div class="donut-segment today" style="--percentage: 0; --offset: 0;"></div>
+                                            <div class="donut-segment week" style="--percentage: 0; --offset: 0;"></div>
+                                            <div class="donut-segment later" style="--percentage: 0; --offset: 0;"></div>
+                                            <div class="donut-center">
+                                                <span id="total-tasks-chart">0</span>
+                                                <small>Total</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="chart-legend">
+                                        <div class="legend-item"><span class="dot overdue"></span> Overdue</div>
+                                        <div class="legend-item"><span class="dot today"></span> Due Today</div>
+                                        <div class="legend-item"><span class="dot week"></span> This Week</div>
+                                        <div class="legend-item"><span class="dot later"></span> Later</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Available Hours for Planning -->
+                        <div class="dashboard-card available-hours-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-clock"></i> Available Hours Today</h3>
+                                <span class="hours-range">7:00 AM - 3:00 PM</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="available-hours-container" class="available-hours-timeline">
+                                    <!-- Available hours will be populated here -->
+                                </div>
+                                <div class="available-hours-summary">
+                                    <div class="hours-stat">
+                                        <span class="hours-value" id="total-available-hours">0</span>
+                                        <span class="hours-label">Hours Available</span>
+                                    </div>
+                                    <div class="hours-stat">
+                                        <span class="hours-value" id="total-meeting-hours">0</span>
+                                        <span class="hours-label">Hours in Meetings</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Emails Section -->
+                <section id="section-emails" class="page-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-inbox"></i> Action Required Emails</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-secondary" onclick="syncEmails()">
+                                <i class="fas fa-sync-alt"></i> Sync
+                            </button>
+                            <button class="btn btn-primary" onclick="convertAllToTasks()">
+                                <i class="fas fa-tasks"></i> Convert All to Tasks
+                            </button>
+                        </div>
+                    </div>
+                    <div class="email-filters">
+                        <button class="filter-btn active" onclick="setEmailFilter('all')">All</button>
+                        <button class="filter-btn" onclick="setEmailFilter('unread')">Unread</button>
+                        <button class="filter-btn" onclick="setEmailFilter('flagged')">Flagged</button>
+                    </div>
+                    <div id="emails-container" class="emails-container">
+                        <!-- Emails will be populated here -->
+                    </div>
+                </section>
+
+                <!-- Tasks Section -->
+                <section id="section-tasks" class="page-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tasks"></i> All Tasks</h2>
+                        <div class="section-actions">
+                            <select id="task-sort" onchange="sortTasks(this.value)">
+                                <option value="dueDate">Sort by Due Date</option>
+                                <option value="priority">Sort by Priority</option>
+                                <option value="created">Sort by Created</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="openAddTaskModal()">
+                                <i class="fas fa-plus"></i> Add Task
+                            </button>
+                        </div>
+                    </div>
+                    <div id="tasks-container" class="tasks-container">
+                        <!-- Tasks will be populated here -->
+                    </div>
+                </section>
+
+                <!-- Completed Section -->
+                <section id="section-completed" class="page-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-check-circle"></i> Completed Tasks</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-danger" onclick="clearCompleted()">
+                                <i class="fas fa-trash"></i> Clear All
+                            </button>
+                        </div>
+                    </div>
+                    <div id="completed-container" class="tasks-container">
+                        <!-- Completed tasks will be populated here -->
+                    </div>
+                </section>
+
+                <!-- Projects Section -->
+                <section id="section-projects" class="page-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-folder-open"></i> Projects</h2>
+                        <div class="section-actions">
+                            <div class="view-toggle">
+                                <button class="view-btn active" onclick="setProjectView('grid')" title="Grid View">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="view-btn" onclick="setProjectView('timeline')" title="Timeline View">
+                                    <i class="fas fa-stream"></i>
+                                </button>
+                                <button class="view-btn" onclick="setProjectView('gantt')" title="Schedule View">
+                                    <i class="fas fa-chart-gantt"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-primary" onclick="openAddProjectModal()">
+                                <i class="fas fa-plus"></i> New Project
+                            </button>
+                        </div>
+                    </div>
+                    <div id="projects-container" class="projects-grid">
+                        <!-- Projects will be populated here -->
+                    </div>
+                    <div id="projects-timeline" class="projects-timeline hidden">
+                        <!-- Timeline view will be populated here -->
+                    </div>
+                    <div id="projects-gantt" class="projects-gantt hidden">
+                        <!-- Gantt/Schedule view will be populated here -->
+                    </div>
+                </section>
+
+                <!-- Calendar Section -->
+                <section id="section-calendar" class="page-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-alt"></i> Calendar View</h2>
+                        <div class="section-actions">
+                            <button class="btn btn-icon" onclick="prevMonth()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="current-month" class="month-display">December 2025</span>
+                            <button class="btn btn-icon" onclick="nextMonth()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <div class="calendar-day-header">Sun</div>
+                            <div class="calendar-day-header">Mon</div>
+                            <div class="calendar-day-header">Tue</div>
+                            <div class="calendar-day-header">Wed</div>
+                            <div class="calendar-day-header">Thu</div>
+                            <div class="calendar-day-header">Fri</div>
+                            <div class="calendar-day-header">Sat</div>
+                        </div>
+                        <div id="calendar-grid" class="calendar-grid">
+                            <!-- Calendar days will be populated here -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="task-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="task-modal-title">Add New Task</h2>
+                <button class="modal-close" onclick="closeTaskModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="task-form">
+                    <input type="hidden" id="task-id">
+                    <div class="form-group">
+                        <label for="task-title">Task Title</label>
+                        <input type="text" id="task-title" required placeholder="Enter task title">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-description">Description</label>
+                        <textarea id="task-description" rows="3" placeholder="Enter task description"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-due-date">Due Date</label>
+                            <input type="date" id="task-due-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-due-time">Due Time</label>
+                            <input type="time" id="task-due-time">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-project">Project</label>
+                            <select id="task-project">
+                                <option value="">No Project</option>
+                                <!-- Projects will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-email-link">Linked Email</label>
+                        <input type="text" id="task-email-link" readonly placeholder="No email linked">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Detail Modal -->
+    <div id="email-modal" class="modal-overlay hidden">
+        <div class="modal email-modal">
+            <div class="modal-header">
+                <h2 id="email-subject">Email Subject</h2>
+                <button class="modal-close" onclick="closeEmailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="email-meta">
+                    <div class="email-from">
+                        <strong>From:</strong> <span id="email-from"></span>
+                    </div>
+                    <div class="email-date">
+                        <strong>Date:</strong> <span id="email-date"></span>
+                    </div>
+                </div>
+                <div class="email-body" id="email-body">
+                    <!-- Email body will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEmailModal()">Close</button>
+                <button class="btn btn-primary" onclick="convertEmailToTask()">
+                    <i class="fas fa-tasks"></i> Convert to Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Project Modal -->
+    <div id="project-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="project-modal-title">Add New Project</h2>
+                <button class="modal-close" onclick="closeProjectModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="project-form">
+                    <input type="hidden" id="project-id">
+                    <div class="form-group">
+                        <label for="project-name">Project Name</label>
+                        <input type="text" id="project-name" required placeholder="Enter project name">
+                    </div>
+                    <div class="form-group">
+                        <label for="project-description">Description</label>
+                        <textarea id="project-description" rows="3" placeholder="Enter project description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-color">Color</label>
+                        <div class="color-picker">
+                            <label class="color-option"><input type="radio" name="project-color" value="#007AFF" checked><span style="background: #007AFF;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#5856D6"><span style="background: #5856D6;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#34C759"><span style="background: #34C759;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#FF9500"><span style="background: #FF9500;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#FF3B30"><span style="background: #FF3B30;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#AF52DE"><span style="background: #AF52DE;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#00C7BE"><span style="background: #00C7BE;"></span></label>
+                            <label class="color-option"><input type="radio" name="project-color" value="#FF2D55"><span style="background: #FF2D55;"></span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Project Schedule</label>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="project-start-date" style="font-size: 12px;">Start Date</label>
+                                <input type="date" id="project-start-date">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="project-end-date" style="font-size: 12px;">End Date</label>
+                                <input type="date" id="project-end-date">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Milestones / Deadlines</label>
+                        <div id="milestones-container" class="milestones-container">
+                            <!-- Milestones will be added here -->
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addMilestoneInput()" style="margin-top: 8px;">
+                            <i class="fas fa-plus"></i> Add Milestone
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-deadline">Final Deadline (Optional)</label>
+                        <input type="date" id="project-deadline">
+                        <small style="color: var(--text-tertiary); font-size: 11px;">The absolute deadline that cannot be missed</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel hidden">
+        <div class="settings-header">
+            <h3>Settings</h3>
+            <button class="close-settings" onclick="toggleSettings()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="settings-body">
+            <div class="setting-group">
+                <label>Daily Hot Tasks Notification</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="daily-notification" checked>
+                    <span class="toggle-slider"></span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label>Notification Time</label>
+                <input type="time" id="notification-time" value="09:00">
+            </div>
+            <div class="setting-group">
+                <label>Auto-sync Interval</label>
+                <select id="sync-interval">
+                    <option value="5">Every 5 minutes</option>
+                    <option value="15" selected>Every 15 minutes</option>
+                    <option value="30">Every 30 minutes</option>
+                    <option value="60">Every hour</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Default Priority for Emails</label>
+                <select id="default-priority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
